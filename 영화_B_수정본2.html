@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영화 티어리스트 만들기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: #f2f4f6;
+    color: #191f28;
+    padding: 24px;
+    line-height: 1.5;
+  }
+  .container { max-width: 820px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  header p { font-size: 14px; color: #8b95a1; }
+
+  .card-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+
+  /* 피라미드: 각 줄을 가운데 정렬하고 너비를 다르게 */
+  .pyramid { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+  .tier-row {
+    display: flex;
+    align-items: stretch;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f9fafb;
+    width: 100%;
+  }
+  /* 위로 갈수록 좁게 (피라미드) */
+  .tier-S { width: 45%; }
+  .tier-A { width: 56%; }
+  .tier-B { width: 67%; }
+  .tier-C { width: 78%; }
+  .tier-D { width: 89%; }
+  .tier-F { width: 100%; }
+
+  .tier-label {
+    width: 56px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .tier-S .tier-label { background: #ff6b6b; }
+  .tier-A .tier-label { background: #ffa94d; }
+  .tier-B .tier-label { background: #ffd43b; color:#191f28; }
+  .tier-C .tier-label { background: #69db7c; }
+  .tier-D .tier-label { background: #4dabf7; }
+  .tier-F .tier-label { background: #868e96; }
+
+  .tier-drop {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;   /* ★ 카드를 줄 가운데로 정렬 */
+    gap: 8px;
+    padding: 10px;
+    min-height: 60px;
+    align-content: flex-start;
+  }
+  .tier-drop.drag-over { background: #e7f5ff; }
+
+  .tier-count {
+    font-size: 12px;
+    color: #adb5bd;
+    align-self: center;
+    padding-right: 10px;
+    flex-shrink: 0;
+  }
+
+  /* 보관함 */
+  .store-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .store-drop {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 64px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .store-drop.drag-over { background: #e7f5ff; }
+
+  /* 영화 카드 */
+  .movie {
+    background: #fff;
+    border: 1px solid #e5e8eb;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: transform 0.05s;
+  }
+  .movie:active { cursor: grabbing; transform: scale(0.97); }
+  .movie.dragging { opacity: 0.4; }
+
+  /* 버튼 */
+  .actions { text-align: center; }
+  button {
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 0 4px;
+  }
+  .btn-save { background: #3182f6; color: #fff; }
+  .btn-save:hover { background: #1b64da; }
+  .btn-reset { background: #e5e8eb; color: #4e5968; }
+  .btn-reset:hover { background: #d1d6db; }
+
+  footer { text-align:center; font-size:12px; color:#adb5bd; margin-top:20px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 영화 티어리스트</h1>
+      <p>1,000만 관객 영화를 드래그해서 나만의 순위를 만들어 보세요!</p>
+    </header>
+
+    <!-- 티어리스트 영역 -->
+    <div class="card-box">
+      <div class="pyramid" id="pyramid">
+        <div class="tier-row tier-S">
+          <div class="tier-label">S</div>
+          <div class="tier-drop" data-tier="S" data-limit="1"></div>
+          <div class="tier-count">0 / 1</div>
+        </div>
+        <div class="tier-row tier-A">
+          <div class="tier-label">A</div>
+          <div class="tier-drop" data-tier="A" data-limit="2"></div>
+          <div class="tier-count">0 / 2</div>
+        </div>
+        <div class="tier-row tier-B">
+          <div class="tier-label">B</div>
+          <div class="tier-drop" data-tier="B" data-limit="3"></div>
+          <div class="tier-count">0 / 3</div>
+        </div>
+        <div class="tier-row tier-C">
+          <div class="tier-label">C</div>
+          <div class="tier-drop" data-tier="C" data-limit="4"></div>
+          <div class="tier-count">0 / 4</div>
+        </div>
+        <div class="tier-row tier-D">
+          <div class="tier-label">D</div>
+          <div class="tier-drop" data-tier="D" data-limit="5"></div>
+          <div class="tier-count">0 / 5</div>
+        </div>
+        <div class="tier-row tier-F">
+          <div class="tier-label">F</div>
+          <div class="tier-drop" data-tier="F" data-limit="6"></div>
+          <div class="tier-count">0 / 6</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 보관함 -->
+    <div class="card-box">
+      <div class="store-title">🎞️ 영화 보관함</div>
+      <div class="store-drop" id="store" data-tier="store"></div>
+    </div>
+
+    <!-- 버튼 -->
+    <div class="actions">
+      <button class="btn-save" id="saveBtn">이미지로 저장하기</button>
+      <button class="btn-reset" id="resetBtn">초기화</button>
+    </div>
+
+    <footer>드래그 앤 드롭으로 영화를 배치하세요. 모든 데이터는 브라우저 안에서만 처리됩니다.</footer>
+  </div>
+
+<script>
+  // 1) 영화 데이터
+  const movies = [
+    "명량", "극한직업", "신과함께-죄와 벌", "국제시장", "베테랑",
+    "괴물", "도둑들", "7번방의 선물", "암살", "광해, 왕이 된 남자",
+    "택시운전사", "태극기 휘날리며", "부산행", "변호인", "해운대",
+    "왕의 남자", "신과함께-인과 연", "국가대표", "서울의 봄", "범죄도시2"
+  ];
+
+  const store = document.getElementById('store');
+
+  // 2) 카드 생성
+  movies.forEach(function(title, i) {
+    const card = document.createElement('div');
+    card.className = 'movie';
+    card.textContent = title;
+    card.draggable = true;
+    card.id = 'movie-' + i;
+    store.appendChild(card);
+  });
+
+  // 3) 드래그 추적
+  let draggingCard = null;
+
+  document.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('movie')) {
+      draggingCard = e.target;
+      e.target.classList.add('dragging');
+    }
+  });
+  document.addEventListener('dragend', function(e) {
+    if (e.target.classList.contains('movie')) {
+      e.target.classList.remove('dragging');
+      draggingCard = null;
+    }
+  });
+
+  // 4) 드롭 영역 이벤트
+  const dropZones = document.querySelectorAll('[data-tier]');
+  dropZones.forEach(function(zone) {
+    zone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', function() {
+      zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (!draggingCard) return;
+
+      const limit = zone.dataset.limit;
+      if (limit) {
+        const current = zone.querySelectorAll('.movie').length;
+        const alreadyHere = draggingCard.parentElement === zone;
+        if (!alreadyHere && current >= Number(limit)) {
+          alert('이 등급은 최대 ' + limit + '개까지만 넣을 수 있어요!');
+          return;
+        }
+      }
+      zone.appendChild(draggingCard);
+      updateCounts();
+    });
+  });
+
+  // 5) 개수 표시 업데이트
+  function updateCounts() {
+    document.querySelectorAll('.tier-row').forEach(function(row) {
+      const drop = row.querySelector('.tier-drop');
+      const countEl = row.querySelector('.tier-count');
+      const limit = drop.dataset.limit;
+      const current = drop.querySelectorAll('.movie').length;
+      countEl.textContent = current + ' / ' + limit;
+    });
+  }
+
+  // 6) 초기화
+  document.getElementById('resetBtn').addEventListener('click', function() {
+    if (!confirm('모든 배치를 초기화할까요?')) return;
+    document.querySelectorAll('.tier-drop .movie').forEach(function(card) {
+      store.appendChild(card);
+    });
+    updateCounts();
+  });
+
+  // 7) 이미지로 저장하기 — 순수 Canvas로 직접 그리기 (file://에서도 동작)
+  const TIERS = [
+    { key: 'S', label: 'S', color: '#ff6b6b', textColor: '#ffffff', widthRatio: 0.45 },
+    { key: 'A', label: 'A', color: '#ffa94d', textColor: '#ffffff', widthRatio: 0.56 },
+    { key: 'B', label: 'B', color: '#ffd43b', textColor: '#191f28', widthRatio: 0.67 },
+    { key: 'C', label: 'C', color: '#69db7c', textColor: '#ffffff', widthRatio: 0.78 },
+    { key: 'D', label: 'D', color: '#4dabf7', textColor: '#ffffff', widthRatio: 0.89 },
+    { key: 'F', label: 'F', color: '#868e96', textColor: '#ffffff', widthRatio: 1.00 }
+  ];
+
+  document.getElementById('saveBtn').addEventListener('click', function() {
+    const scale = 2;
+    const canvasW = 760;
+    const padding = 24;
+    const rowGap = 12;
+    const labelW = 56;
+    const cardH = 34;
+    const cardGap = 8;
+    const cardPadX = 12;
+    const rowPad = 10;
+    const titleH = 50;
+    const contentW = canvasW - padding * 2;
+
+    const measureCanvas = document.createElement('canvas');
+    const mctx = measureCanvas.getContext('2d');
+    mctx.font = '600 13px -apple-system, "Malgun Gothic", sans-serif';
+
+    // 각 티어의 카드들을 "줄(line)" 단위로 묶어서 계산 (가운데 정렬을 위해)
+    const rowsInfo = TIERS.map(function(tier) {
+      const drop = document.querySelector('[data-tier="' + tier.key + '"]');
+      const cards = Array.from(drop.querySelectorAll('.movie')).map(function(c) {
+        const text = c.textContent;
+        const w = Math.ceil(mctx.measureText(text).width) + cardPadX * 2;
+        return { text: text, w: w };
+      });
+
+      const rowW = Math.round(contentW * tier.widthRatio);
+      const dropW = rowW - labelW;
+      const innerW = dropW - rowPad * 2;
+
+      // ★ 카드들을 줄 단위 배열로 나누기 (각 줄의 총 너비도 함께 저장)
+      const lines = [];
+      let currentLine = [];
+      let lineW = 0;
+      cards.forEach(function(card) {
+        const need = (currentLine.length === 0 ? card.w : lineW + cardGap + card.w);
+        if (need > innerW && currentLine.length > 0) {
+          lines.push({ cards: currentLine, totalW: lineW });
+          currentLine = [card];
+          lineW = card.w;
+        } else {
+          currentLine.push(card);
+          lineW = need;
+        }
+      });
+      if (currentLine.length > 0) {
+        lines.push({ cards: currentLine, totalW: lineW });
+      }
+
+      const lineCount = Math.max(1, lines.length);
+      const rowHeight = Math.max(60, rowPad * 2 + lineCount * cardH + (lineCount - 1) * cardGap);
+      return { tier: tier, lines: lines, rowW: rowW, dropW: dropW, innerW: innerW, rowHeight: rowHeight };
+    });
+
+    let totalH = padding * 2 + titleH;
+    rowsInfo.forEach(function(r, i) {
+      totalH += r.rowHeight;
+      if (i < rowsInfo.length - 1) totalH += rowGap;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasW * scale;
+    canvas.height = totalH * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasW, totalH);
+
+    ctx.fillStyle = '#191f28';
+    ctx.font = '700 22px -apple-system, "Malgun Gothic", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🎬 영화 티어리스트', canvasW / 2, padding + titleH / 2);
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    let y = padding + titleH;
+    rowsInfo.forEach(function(r) {
+      const rowX = padding + (contentW - r.rowW) / 2; // 줄 자체의 피라미드 가운데 정렬
+
+      ctx.fillStyle = '#f9fafb';
+      roundRect(rowX, y, r.rowW, r.rowHeight, 14);
+      ctx.fill();
+
+      ctx.save();
+      roundRect(rowX, y, labelW, r.rowHeight, 14);
+      ctx.clip();
+      ctx.fillStyle = r.tier.color;
+      ctx.fillRect(rowX, y, labelW, r.rowHeight);
+      ctx.restore();
+
+      ctx.fillStyle = r.tier.textColor;
+      ctx.font = '800 22px -apple-system, "Malgun Gothic", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(r.tier.label, rowX + labelW / 2, y + r.rowHeight / 2);
+
+      // ★ 카드 영역(라벨 오른쪽)의 시작과 너비
+      const dropStartX = rowX + labelW + rowPad;
+      ctx.font = '600 13px -apple-system, "Malgun Gothic", sans-serif';
+      ctx.textBaseline = 'middle';
+
+      // ★ 줄마다 "그 줄 카드들의 총 너비"를 기준으로 가운데 정렬
+      let cy = y + rowPad;
+      r.lines.forEach(function(line) {
+        // 남는 공간의 절반만큼 오른쪽으로 밀어 가운데 정렬
+        let cx = dropStartX + (r.innerW - line.totalW) / 2;
+
+        line.cards.forEach(function(card) {
+          ctx.fillStyle = '#ffffff';
+          roundRect(cx, cy, card.w, cardH, 10);
+          ctx.fill();
+
+          ctx.strokeStyle = '#e5e8eb';
+          ctx.lineWidth = 1;
+          roundRect(cx, cy, card.w, cardH, 10);
+          ctx.stroke();
+
+          ctx.fillStyle = '#191f28';
+          ctx.textAlign = 'left';
+          ctx.fillText(card.text, cx + cardPadX, cy + cardH / 2);
+
+          cx += card.w + cardGap;
+        });
+
+        cy += cardH + cardGap;
+      });
+
+      y += r.rowHeight + rowGap;
+    });
+
+    try {
+      const pngUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = '영화_티어리스트.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('이미지 저장 중 문제가 발생했어요. 브라우저를 최신 버전으로 업데이트한 뒤 다시 시도해 주세요.');
+      console.error(err);
+    }
+  });
+
+  updateCounts();
+</script>
+</body>
+</html>

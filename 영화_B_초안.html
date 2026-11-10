@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영화 티어리스트 만들기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: #f2f4f6;
+    color: #191f28;
+    padding: 24px;
+    line-height: 1.5;
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  header p { font-size: 14px; color: #8b95a1; }
+
+  .card-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+
+  /* 티어 영역 */
+  .tier-row {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 10px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f9fafb;
+  }
+  .tier-label {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .tier-S .tier-label { background: #ff6b6b; }
+  .tier-A .tier-label { background: #ffa94d; }
+  .tier-B .tier-label { background: #ffd43b; color:#191f28; }
+  .tier-C .tier-label { background: #69db7c; }
+  .tier-D .tier-label { background: #4dabf7; }
+
+  .tier-drop {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    min-height: 64px;
+    align-content: flex-start;
+  }
+  .tier-drop.drag-over { background: #e7f5ff; }
+
+  .tier-count {
+    font-size: 12px;
+    color: #adb5bd;
+    align-self: center;
+    padding-right: 10px;
+    flex-shrink: 0;
+  }
+
+  /* 보관함 */
+  .store-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .store-drop {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 64px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .store-drop.drag-over { background: #e7f5ff; }
+
+  /* 영화 카드 */
+  .movie {
+    background: #fff;
+    border: 1px solid #e5e8eb;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: transform 0.05s;
+  }
+  .movie:active { cursor: grabbing; transform: scale(0.97); }
+  .movie.dragging { opacity: 0.4; }
+
+  /* 버튼 */
+  .actions { text-align: center; }
+  button {
+    font-family: inherit;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 0 4px;
+  }
+  .btn-save { background: #3182f6; color: #fff; }
+  .btn-save:hover { background: #1b64da; }
+  .btn-reset { background: #e5e8eb; color: #4e5968; }
+  .btn-reset:hover { background: #d1d6db; }
+
+  footer { text-align:center; font-size:12px; color:#adb5bd; margin-top:20px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 영화 티어리스트</h1>
+      <p>1,000만 관객 영화를 드래그해서 나만의 순위를 만들어 보세요!</p>
+    </header>
+
+    <!-- 티어리스트 영역 (저장 대상) -->
+    <div class="card-box" id="tierArea">
+      <div class="tier-row tier-S">
+        <div class="tier-label">S</div>
+        <div class="tier-drop" data-tier="S" data-limit="1"></div>
+        <div class="tier-count">0 / 1</div>
+      </div>
+      <div class="tier-row tier-A">
+        <div class="tier-label">A</div>
+        <div class="tier-drop" data-tier="A" data-limit="2"></div>
+        <div class="tier-count">0 / 2</div>
+      </div>
+      <div class="tier-row tier-B">
+        <div class="tier-label">B</div>
+        <div class="tier-drop" data-tier="B" data-limit="3"></div>
+        <div class="tier-count">0 / 3</div>
+      </div>
+      <div class="tier-row tier-C">
+        <div class="tier-label">C</div>
+        <div class="tier-drop" data-tier="C" data-limit="4"></div>
+        <div class="tier-count">0 / 4</div>
+      </div>
+      <div class="tier-row tier-D">
+        <div class="tier-label">D</div>
+        <div class="tier-drop" data-tier="D" data-limit="5"></div>
+        <div class="tier-count">0 / 5</div>
+      </div>
+    </div>
+
+    <!-- 보관함 -->
+    <div class="card-box">
+      <div class="store-title">🎞️ 영화 보관함</div>
+      <div class="store-drop" id="store" data-tier="store"></div>
+    </div>
+
+    <!-- 버튼 -->
+    <div class="actions">
+      <button class="btn-save" id="saveBtn">이미지로 저장하기</button>
+      <button class="btn-reset" id="resetBtn">초기화</button>
+    </div>
+
+    <footer>드래그 앤 드롭으로 영화를 배치하세요. 모든 데이터는 브라우저 안에서만 처리됩니다.</footer>
+  </div>
+
+<script>
+  // 1) 영화 데이터 (한국 1,000만 관객 영화 중심)
+  const movies = [
+    "명량", "극한직업", "신과함께-죄와 벌", "국제시장", "베테랑",
+    "괴물", "도둑들", "7번방의 선물", "암살", "광해, 왕이 된 남자",
+    "택시운전사", "태극기 휘날리며", "부산행", "변호인", "해운대",
+    "왕의 남자", "신과함께-인과 연", "국가대표", "서울의 봄", "범죄도시2"
+  ];
+
+  const store = document.getElementById('store');
+
+  // 2) 카드 생성 후 보관함에 넣기
+  movies.forEach(function(title, i) {
+    const card = document.createElement('div');
+    card.className = 'movie';
+    card.textContent = title;
+    card.draggable = true;
+    card.id = 'movie-' + i;
+    store.appendChild(card);
+  });
+
+  // 3) 드래그 중인 카드 추적
+  let draggingCard = null;
+
+  document.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('movie')) {
+      draggingCard = e.target;
+      e.target.classList.add('dragging');
+    }
+  });
+
+  document.addEventListener('dragend', function(e) {
+    if (e.target.classList.contains('movie')) {
+      e.target.classList.remove('dragging');
+      draggingCard = null;
+    }
+  });
+
+  // 4) 모든 드롭 영역에 이벤트 연결
+  const dropZones = document.querySelectorAll('[data-tier]');
+
+  dropZones.forEach(function(zone) {
+    zone.addEventListener('dragover', function(e) {
+      e.preventDefault(); // 드롭 허용
+      zone.classList.add('drag-over');
+    });
+
+    zone.addEventListener('dragleave', function() {
+      zone.classList.remove('drag-over');
+    });
+
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if (!draggingCard) return;
+
+      // 티어 개수 제한 확인 (보관함은 제한 없음)
+      const limit = zone.dataset.limit;
+      if (limit) {
+        const current = zone.querySelectorAll('.movie').length;
+        // 이미 이 영역 안에 있던 카드를 다시 놓는 경우는 제외
+        const alreadyHere = draggingCard.parentElement === zone;
+        if (!alreadyHere && current >= Number(limit)) {
+          alert('이 등급은 최대 ' + limit + '개까지만 넣을 수 있어요!');
+          return;
+        }
+      }
+      zone.appendChild(draggingCard);
+      updateCounts();
+    });
+  });
+
+  // 5) 티어별 개수 표시 업데이트
+  function updateCounts() {
+    document.querySelectorAll('.tier-row').forEach(function(row) {
+      const drop = row.querySelector('.tier-drop');
+      const countEl = row.querySelector('.tier-count');
+      const limit = drop.dataset.limit;
+      const current = drop.querySelectorAll('.movie').length;
+      countEl.textContent = current + ' / ' + limit;
+    });
+  }
+
+  // 6) 초기화 버튼
+  document.getElementById('resetBtn').addEventListener('click', function() {
+    if (!confirm('모든 배치를 초기화할까요?')) return;
+    document.querySelectorAll('.tier-drop .movie').forEach(function(card) {
+      store.appendChild(card);
+    });
+    updateCounts();
+  });
+
+  // 7) 이미지로 저장하기 (외부 라이브러리 없이 SVG + Canvas 사용)
+  document.getElementById('saveBtn').addEventListener('click', function() {
+    const target = document.getElementById('tierArea');
+    const rect = target.getBoundingClientRect();
+    const width = Math.ceil(rect.width);
+    const height = Math.ceil(rect.height);
+
+    // target 영역의 HTML을 SVG의 foreignObject로 감싸서 이미지화
+    const cloned = target.cloneNode(true);
+    // 인라인 스타일 보강 (SVG 내부에서도 폰트/배경 유지)
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(cloned);
+
+    const styleText = document.querySelector('style').innerHTML;
+
+    const svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '">' +
+        '<foreignObject width="100%" height="100%">' +
+          '<div xmlns="http://www.w3.org/1999/xhtml" style="background:#fff;padding:0;">' +
+            '<style>' + styleText + '</style>' +
+            wrapper.innerHTML +
+          '</div>' +
+        '</foreignObject>' +
+      '</svg>';
+
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      // 선명한 저장을 위해 2배 해상도로 그리기
+      const scale = 2;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+
+      // 흰색 배경 먼저 채우기 (투명 방지)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // SVG 이미지를 캔버스에 그리기
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+
+      // 캔버스를 PNG로 변환해 다운로드
+      try {
+        const pngUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = '영화_티어리스트.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        alert('이미지 저장 중 문제가 발생했어요. 브라우저를 최신 버전으로 업데이트한 뒤 다시 시도해 주세요.');
+        console.error(err);
+      }
+    };
+
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      alert('이미지를 만드는 데 실패했어요. 다른 브라우저(크롬, 엣지)에서 다시 시도해 보세요.');
+    };
+
+    img.src = url;
+  });
+
+  // 8) 처음 화면 개수 표시 초기화
+  updateCounts();
+</script>
+</body>
+</html>

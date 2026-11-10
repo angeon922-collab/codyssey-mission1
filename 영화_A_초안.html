@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영화 티어리스트 - Toss Style</title>
+<style>
+/* 토스 스타일 테마 정의 */
+:root {
+--toss-blue: #3182f6;
+--toss-gray-100: #f2f4f6;
+--toss-gray-200: #e5e8eb;
+--toss-gray-600: #4e5968;
+--toss-gray-900: #191f28;
+--white: #ffffff;
+}
+
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+background-color: var(--toss-gray-100);
+color: var(--toss-gray-900);
+margin: 0;
+padding: 40px 20px;
+display: flex;
+flex-direction: column;
+align-items: center;
+line-height: 1.5;
+}
+
+header {
+text-align: center;
+margin-bottom: 40px;
+}
+
+header h1 {
+font-size: 32px;
+font-weight: 700;
+margin-bottom: 12px;
+letter-spacing: -0.5px;
+}
+
+header p {
+color: var(--toss-gray-600);
+font-size: 17px;
+}
+
+/* 티어리스트 컨테이너 */
+#tier-wrapper {
+background: var(--white);
+padding: 40px;
+border-radius: 32px;
+box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+width: 100%;
+max-width: 900px;
+box-sizing: border-box;
+}
+
+.tier-row {
+display: flex;
+align-items: center;
+margin-bottom: 16px;
+padding: 12px;
+background-color: #f9fafb;
+border-radius: 20px;
+min-height: 90px;
+transition: background-color 0.2s;
+}
+
+.tier-label {
+width: 80px;
+height: 60px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 24px;
+font-weight: 800;
+border-radius: 14px;
+margin-right: 20px;
+user-select: none;
+}
+
+/* 티어별 색상 */
+.tier-S .tier-label { background-color: #ffebf0; color: #f04452; }
+.tier-A .tier-label { background-color: #fff4eb; color: #ff7e36; }
+.tier-B .tier-label { background-color: #fffbe6; color: #ffbb00; }
+.tier-C .tier-label { background-color: #f0fcf0; color: #2bb673; }
+.tier-D .tier-label { background-color: #eef6ff; color: #3182f6; }
+
+.drop-zone {
+flex: 1;
+display: flex;
+flex-wrap: wrap;
+gap: 12px;
+min-height: 60px;
+align-items: center;
+}
+
+/* 영화 카드 */
+.movie-card {
+background: var(--white);
+border: 1px solid var(--toss-gray-200);
+padding: 10px 20px;
+border-radius: 14px;
+font-size: 15px;
+font-weight: 600;
+cursor: grab;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+user-select: none;
+}
+
+.movie-card:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.movie-card:active {
+cursor: grabbing;
+transform: scale(0.96);
+}
+
+/* 영화 보관함 */
+#pool-section {
+margin-top: 50px;
+width: 100%;
+max-width: 900px;
+}
+
+#pool-section h3 {
+font-size: 18px;
+margin-bottom: 16px;
+color: var(--toss-gray-600);
+padding-left: 10px;
+}
+
+#movie-pool {
+background: var(--white);
+padding: 24px;
+border-radius: 24px;
+display: flex;
+flex-wrap: wrap;
+gap: 12px;
+justify-content: center;
+min-height: 150px;
+border: 2px dashed var(--toss-gray-200);
+}
+
+/* 하단 버튼 */
+.action-area {
+margin-top: 40px;
+display: flex;
+gap: 16px;
+}
+
+.btn {
+padding: 16px 32px;
+border-radius: 18px;
+font-size: 17px;
+font-weight: 700;
+border: none;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.btn-primary {
+background-color: var(--toss-blue);
+color: var(--white);
+}
+
+.btn-primary:hover {
+background-color: #1b64da;
+}
+
+/* 인쇄/저장 시 스타일 */
+@media print {
+body { background-color: white; padding: 0; }
+#pool-section, .action-area, header p { display: none; }
+#tier-wrapper { box-shadow: none; border: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🎬 인생 영화 티어리스트</h1>
+<p>가장 좋아하는 영화를 드래그하여 피라미드를 완성하세요.</p>
+</header>
+
+<div id="tier-wrapper">
+<div class="tier-row tier-S" data-limit="1">
+<div class="tier-label">S</div>
+<div class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+</div>
+<div class="tier-row tier-A" data-limit="2">
+<div class="tier-label">A</div>
+<div class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+</div>
+<div class="tier-row tier-B" data-limit="3">
+<div class="tier-label">B</div>
+<div class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+</div>
+<div class="tier-row tier-C" data-limit="4">
+<div class="tier-label">C</div>
+<div class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+</div>
+<div class="tier-row tier-D" data-limit="5">
+<div class="tier-label">D</div>
+<div class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+</div>
+</div>
+
+<div id="pool-section">
+<h3>영화 보관함</h3>
+<div id="movie-pool" ondrop="drop(event)" ondragover="allowDrop(event)">
+<!-- 영화 카드가 여기에 생성됩니다 -->
+</div>
+</div>
+
+<div class="action-area">
+<button class="btn btn-primary" onclick="window.print()">결과 저장하기 (PDF/인쇄)</button>
+</div>
+
+<script>
+// 확장된 영화 리스트 (22개)
+const movies = [
+"명량", "극한직업", "신과함께-죄와 벌", "국제시장", "어벤져스: 엔드게임",
+"베테랑", "괴물", "도둑들", "7번방의 선물", "암살",
+"광해, 왕이 된 남자", "신과함께-인과 연", "택시운전사", "부산행", "변호인",
+"기생충", "겨울왕국 2", "인터스텔라", "아바타", "범죄도시2", "서울의 봄", "해운대"
+];
+
+const moviePool = document.getElementById('movie-pool');
+
+// 초기 영화 카드 생성
+movies.forEach((movie, index) => {
+const card = document.createElement('div');
+card.className = 'movie-card';
+card.innerText = movie;
+card.draggable = true;
+card.id = 'movie-' + index;
+
+// 드래그 시작 이벤트
+card.addEventListener('dragstart', (e) => {
+e.dataTransfer.setData('text/plain', e.target.id);
+});
+
+moviePool.appendChild(card);
+});
+
+// 드래그 허용
+function allowDrop(ev) {
+ev.preventDefault();
+}
+
+// 드롭 동작
+function drop(ev) {
+ev.preventDefault();
+const data = ev.dataTransfer.getData('text/plain');
+const draggedElement = document.getElementById(data);
+
+let target = ev.target;
+
+// 올바른 드롭 영역(drop-zone) 찾기
+while (target && !target.classList.contains('drop-zone') && target.id !== 'movie-pool') {
+target = target.parentElement;
+}
+
+if (target) {
+// 티어 구역인 경우 개수 제한 확인
+if (target.classList.contains('drop-zone')) {
+const row = target.parentElement;
+const limit = parseInt(row.getAttribute('data-limit'));
+const currentCount = target.children.length;
+
+if (currentCount >= limit) {
+alert(`이 등급에는 최대 ${limit}개까지만 넣을 수 있습니다.`);
+return;
+}
+}
+
+target.appendChild(draggedElement);
+}
+}
+</script>
+</body>
+</html>
